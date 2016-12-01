@@ -3,23 +3,24 @@ var sensoryOutput
 function SensorGrid(config) {
   "use strict"
   var sensorGrid = this;
-  var scale = (config && config.sensorScale) ? config.sensorScale : 0.05;
-
-  var video = (config && config.video) ? config.video : document.createElement('video');
+  var scale = (config && 'sensorScale' in config) ? config.sensorScale : 0.05;
+  var video = (config && 'video' in config) ? config.video : document.createElement('video');
+  video.classList.add('sensor-grid-video');
   video.setAttribute('autoplay', true);
-
-  var cvs = (config && config.canvas) ? config.canvas : document.createElement('canvas');
+  var cvs = (config && 'canvas' in config) ? config.canvas : document.createElement('canvas');
+  cvs.classList.add('sensor-grid-canvas');
+  var mirrorX = (config && 'mirrorX' in config) ? config.mirrorX : true;
   var ctx = cvs.getContext("2d");
 
   var process = function(pixel, index, collection) {};
 
-  var showSensorData = (config && config.showSensorData) ? config.showSensorData : false;
+  var showSensorData = (config && 'showSensorData' in config) ? config.showSensorData : false;
 
   sensorGrid.setSensorDataVisiblity = function(doShow){
     showSensorData = doShow;
   }
 
-  sensorGrid.processPixel = function(func) {
+  sensorGrid.prepareSensoryData = function(func) {
     process = func;
   }
 
@@ -80,8 +81,9 @@ function SensorGrid(config) {
     var rawSensorRows = SensorGrid.util.chunk(rawSensorPixels, cvs.width, true);
     SensorGrid.util.each(rawSensorRows, function(row, y, rawSensorRows) {
       var y = y;
-      SensorGrid.util.eachRight(row, function(pixel, nX, row) {
-        var x = (cvs.width - 1) - nX;
+      var innerEach = mirrorX ? SensorGrid.util.eachRight : SensorGrid.util.each;
+      innerEach(row, function(pixel, nX, row) {
+        var x = mirrorX ? ((cvs.width - 1) - nX) : nX;
         var flag = process(pixel, sensoryOutput.pixels.length, sensoryOutput);
         var pxl;
         if (flag) {
@@ -167,7 +169,6 @@ SensorGrid.util = {
   RGBApixel : function(pixelArray) {
   return {r:pixelArray[0], g:pixelArray[1], b:pixelArray[2], a:pixelArray[3]}
   }
-
 }
 
 //if lodash exists, us its native funcs
@@ -252,11 +253,11 @@ SensorGrid.filters = {
 
 //{sensorScale:0.2}
 //{sensorScale:0.2}
-var sensorGrid = new SensorGrid({sensorScale:0.05,showSensorData:true});
-//sensorGrid.processPixel(SensorGrid.filters.rgbRange([40,255],[0,100],[0,255]))
-//sensorGrid.processPixel(SensorGrid.filters.rgbNear(200,200,200,55))
-sensorGrid.processPixel(SensorGrid.filters.channelNear('green',200,55))
-//sensorGrid.processPixel(SensorGrid.filters.luminosity(30));
+var sensorGrid = new SensorGrid({sensorScale:0.05,showSensorData:true,mirrorX:true});
+//sensorGrid.prepareSensoryData(SensorGrid.filters.rgbRange([40,255],[0,100],[0,255]))
+//sensorGrid.prepareSensoryData(SensorGrid.filters.rgbNear(200,200,200,55))
+sensorGrid.prepareSensoryData(SensorGrid.filters.channelNear('green',200,56))
+//sensorGrid.prepareSensoryData(SensorGrid.filters.luminosity(30));
 
 
 document.body.appendChild(sensorGrid.getCanvas());
